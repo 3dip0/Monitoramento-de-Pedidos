@@ -41,6 +41,7 @@ namespace Monitoramento_de_Pedidos
         SMS.Core.SMS sms = new SMS.Core.SMS();
         private void Form1_Load(object sender, EventArgs e)
         {
+            UpdateCarrinho();
             LimparNumerosPedido();
             CarregarDadosPedidoAceito();
             novasVendas.RunWorkerAsync();
@@ -48,6 +49,7 @@ namespace Monitoramento_de_Pedidos
             DateTime dateTime = DateTime.Today;
 
             lblAceitos.Text = $"Pedidos Aceitos: {dateTime.Day.ToString("00")}/{dateTime.Month.ToString("00")}/{dateTime.Year}";
+          
         }
 
 
@@ -144,12 +146,43 @@ namespace Monitoramento_de_Pedidos
                 DateTime dateTime = DateTime.Today;
 
 
-                sql = $"SELECT descricao as \"Descricao\", " +
-                    $"CONCAT('R$',format(valor_unitario,2,'pt_BR')) " +
-                    $"as \"Valor Unitario\"," +
-                    $" quantidade as \"Quantidade\",  " +
-                    $"CONCAT('R$',format(valor_total,2,'pt_BR')) as \"Valor Total\" " +
-                    $"from Carrinho where  id_venda={numero}";
+                sql = $"SELECT descricao, quantidade, valor_unitario, valor_total from Carrinho where id_venda={numero}";
+
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                MySqlDataAdapter da = new MySqlDataAdapter(cmd);
+                DataTable ds = new DataTable();
+                da.Fill(ds);
+
+                dgvCarrinho.Invoke((Action)(() => dgvCarrinho.DataSource = ds));
+
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erro: " + ex.Message, "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                if (conn.State == ConnectionState.Open)
+                    conn.Close();
+            }
+        }
+
+
+
+        private void UpdateCarrinho()
+        {
+
+            MySqlConnection conn = instanciaMySql.GetConnection();
+            try
+            {
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
+                DateTime dateTime = DateTime.Today;
+
+
+                sql = $"Update Carrinho set id_venda=null where data<'{dateTime.Year+"-"+dateTime.Month.ToString("00")+"-"+dateTime.Day.ToString("00")}'";
 
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 MySqlDataAdapter da = new MySqlDataAdapter(cmd);
@@ -437,56 +470,63 @@ namespace Monitoramento_de_Pedidos
 
         private void dgvVendas_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
-            txnumeroPedido.Text = "PEDIDO: " + dgvVendas.SelectedCells[0].Value.ToString();
-            nome.Text = RemoverAcentuacao(dgvVendas.SelectedCells[1].Value.ToString().ToUpper());
-            telefone.Text = RemoverAcentuacao(dgvVendas.SelectedCells[2].Value.ToString().ToUpper());
+            try{
+                txnumeroPedido.Text = "PEDIDO: " + dgvVendas.SelectedCells[0].Value.ToString();
+                nome.Text = RemoverAcentuacao(dgvVendas.SelectedCells[1].Value.ToString().ToUpper());
+                telefone.Text = RemoverAcentuacao(dgvVendas.SelectedCells[2].Value.ToString().ToUpper());
 
-            formaPagamento.Text = "FORMA DE PAGAMENTO: " + dgvVendas.SelectedCells[6].Value.ToString();
+                formaPagamento.Text = "FORMA DE PAGAMENTO: " + dgvVendas.SelectedCells[6].Value.ToString();
 
-            if (dgvVendas.SelectedCells[6].Value.ToString() == "CARTAO")
-            {
-                troco.Visible = false;
-                valorTroco.Visible = false;
-                subTotal.Visible = false;
+                if (dgvVendas.SelectedCells[6].Value.ToString() == "CARTAO")
+                {
+                    troco.Visible = false;
+                    valorTroco.Visible = false;
+                    subTotal.Visible = false;
+                }
+                else
+                {
+                    troco.Visible = true;
+                    valorTroco.Visible = true;
+                    subTotal.Visible = true;
+                }
+                entrega.Text = Regex.Replace(dgvVendas.SelectedCells[7].Value.ToString().Replace(": R$", "").Replace(",", ""), @"[\d-]", string.Empty);
+                if (entrega.Text == "RETIRAR NO LOCAL")
+                {
+                    taxaEntrega.Visible = false;
+                    endereco.Visible = false;
+                    numero.Visible = false;
+                    bairro.Visible = false;
+                }
+                else
+                {
+                    taxaEntrega.Visible = true;
+                    endereco.Visible = true;
+                    numero.Visible = true;
+                    bairro.Visible = true;
+                }
+                endereco.Text = RemoverAcentuacao(dgvVendas.SelectedCells[3].Value.ToString().ToUpper());
+                numero.Text = dgvVendas.SelectedCells[4].Value.ToString().ToUpper();
+                bairro.Text = RemoverAcentuacao(dgvVendas.SelectedCells[5].Value.ToString().ToUpper());
+
+                troco.Text = "TROCO PARA: R$" + dgvVendas.SelectedCells[8].Value.ToString().Replace(".", ",");
+                subTotal.Text = "SUBTOTAL: R$" + dgvVendas.SelectedCells[9].Value.ToString().Replace(".", ","); ;
+                total.Text = "TOTAL: R$" + dgvVendas.SelectedCells[10].Value.ToString().Replace(".", ","); ;
+                valorTroco.Text = "TROCO: R$" + dgvVendas.SelectedCells[11].Value.ToString().Replace(".", ","); ;
+                taxaEntrega.Text = "TAXA DE ENTREGA: R$" + dgvVendas.SelectedCells[12].Value.ToString().Replace(".", ","); ;
+                pedido = Convert.ToInt32(dgvVendas.SelectedCells[13].Value.ToString());
+                aceitarPedido.Visible = true;
+                recusarPedido.Visible = true;
+
+                CarregarDadosCarrinho(dgvVendas.SelectedCells[0].Value.ToString());
+                numeroPedidoUpdate = numeroPedido;
+
+                thread = 0;
             }
-            else
+            catch
             {
-                troco.Visible = true;
-                valorTroco.Visible = true;
-                subTotal.Visible = true;
-            }
-            entrega.Text = Regex.Replace(dgvVendas.SelectedCells[7].Value.ToString().Replace(": R$", "").Replace(",", ""), @"[\d-]", string.Empty);
-            if (entrega.Text == "RETIRAR NO LOCAL")
-            {
-                taxaEntrega.Visible = false;
-                endereco.Visible = false;
-                numero.Visible = false;
-                bairro.Visible = false;
-            }
-            else
-            {
-                taxaEntrega.Visible = true;
-                endereco.Visible = true;
-                numero.Visible = true;
-                bairro.Visible = true;
-            }
-            endereco.Text = RemoverAcentuacao(dgvVendas.SelectedCells[3].Value.ToString().ToUpper());
-            numero.Text = dgvVendas.SelectedCells[4].Value.ToString().ToUpper();
-            bairro.Text = RemoverAcentuacao(dgvVendas.SelectedCells[5].Value.ToString().ToUpper());
 
-            troco.Text = "TROCO PARA: R$" + dgvVendas.SelectedCells[8].Value.ToString().Replace(".", ",");
-            subTotal.Text = "SUBTOTAL: R$" + dgvVendas.SelectedCells[9].Value.ToString().Replace(".", ","); ;
-            total.Text = "TOTAL: R$" + dgvVendas.SelectedCells[10].Value.ToString().Replace(".", ","); ;
-            valorTroco.Text = "TROCO: R$" + dgvVendas.SelectedCells[11].Value.ToString().Replace(".", ","); ;
-            taxaEntrega.Text = "TAXA DE ENTREGA: R$" + dgvVendas.SelectedCells[12].Value.ToString().Replace(".", ","); ;
-            pedido = Convert.ToInt32(dgvVendas.SelectedCells[13].Value.ToString());
-            aceitarPedido.Visible = true;
-            recusarPedido.Visible = true;
-
-            CarregarDadosCarrinho(dgvVendas.SelectedCells[0].Value.ToString());
-            numeroPedidoUpdate = numeroPedido;
-
-            thread = 0;
+            }
+           
         }
 
         private void dgvAceitos_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
@@ -689,6 +729,30 @@ namespace Monitoramento_de_Pedidos
 
         private void novasVendas_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+
+        }
+
+        private void button2_Click_1(object sender, EventArgs e)
+        {
+            var dataSet = new carrinho();
+            foreach (DataGridViewRow linha in dgvCarrinho.Rows)
+            {
+                if (!linha.IsNewRow)
+                {
+                    var novaLinhaDataSet = dataSet._carrinho.NewcarrinhoRow();
+
+                    novaLinhaDataSet.quantidade = linha.Cells[2].Value.ToString();
+                    novaLinhaDataSet.descricao = linha.Cells[0].Value.ToString();
+
+                    decimal vTotal = Convert.ToDecimal(linha.Cells[1].Value.ToString().Replace("R$","")) * Convert.ToDecimal(linha.Cells[2].Value);
+                    novaLinhaDataSet.valorTotal = vTotal;
+
+                    dataSet._carrinho.AddcarrinhoRow(novaLinhaDataSet);
+                }
+            }
+            impressaoLocal impressaoPedido = new impressaoLocal(numeroPedido.ToString(), nome.Text, endereco.Text + ", " + numero.Text + "-" + bairro.Text, subTotal.Text, taxaEntrega.Text, total.Text, troco.Text, troco.ToString(), formaPagamento.Text, entrega.Text, dataSet);
+
+            impressaoPedido.ShowDialog();
 
         }
     }
