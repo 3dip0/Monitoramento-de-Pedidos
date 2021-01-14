@@ -4,7 +4,7 @@ namespace Monitoramento_de_Pedidos
 {
     public class MySQL
     {
-        IniFile arquivo = new IniFile("Config.ini");
+        IniFile arquivo = new IniFile("c:/Config.ini");
 
         public MySqlConnection GetConnection()
         {

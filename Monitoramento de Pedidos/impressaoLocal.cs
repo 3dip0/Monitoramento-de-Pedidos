@@ -15,7 +15,7 @@ namespace Monitoramento_de_Pedidos
 {
     public partial class impressaoLocal : Form
     {
-        public impressaoLocal(string numeroPedido, string nome, string endereco, string subTotal, string taxa, string total, string trocoPara, string trocoCliente, string formaPagamento, string formaEntrega, DataSet dataSet)
+        public impressaoLocal(string numeroPedido, string nome, string endereco, string obs, string subTotal, string taxa, string total, string trocoPara, string trocoCliente, string formaPagamento, string formaEntrega, DataSet dataSet)
         {
             InitializeComponent();
             carrinho carrinho = new carrinho();
@@ -38,6 +38,10 @@ namespace Monitoramento_de_Pedidos
                 this.reportViewer1.LocalReport.SetParameters(new Microsoft.Reporting.WinForms.ReportParameter("taxa", myTI.ToUpper(taxa)));
 
             }
+            this.reportViewer1.LocalReport.SetParameters(new Microsoft.Reporting.WinForms.ReportParameter("endereco", myTI.ToUpper(endereco.RemoveDiacritics())));
+            this.reportViewer1.LocalReport.SetParameters(new Microsoft.Reporting.WinForms.ReportParameter("obs", myTI.ToUpper(obs.RemoveDiacritics())));
+
+            this.reportViewer1.LocalReport.SetParameters(new Microsoft.Reporting.WinForms.ReportParameter("taxa", myTI.ToUpper(taxa)));
 
             this.reportViewer1.LocalReport.SetParameters(new Microsoft.Reporting.WinForms.ReportParameter("total", myTI.ToUpper(total)));
 

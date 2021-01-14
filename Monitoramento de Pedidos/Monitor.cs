@@ -85,7 +85,8 @@ namespace Monitoramento_de_Pedidos
                    "venda.valor_total as \"Valor Total\", " +
                    "venda.valorTroco as \"Valor do Troco\", " +
                    "venda.taxa_entrega as \"Taxa de Entrega\", " +
-                   "venda.pedidoAceito as \"Status Pedido\" " +
+                   "venda.pedidoAceito as \"Status Pedido\", " +
+                   "venda.obs as \"Observacao\" " +
                    "from Venda as venda " +
                    "inner join Cliente as cliente " +
                    $"on venda.id_cliente = cliente.id where venda.pedidoAceito=0 order by venda.numero_venda_site desc";
@@ -185,14 +186,12 @@ namespace Monitoramento_de_Pedidos
                 sql = $"Update Carrinho set id_venda=null where data<'{dateTime.Year+"-"+dateTime.Month.ToString("00")+"-"+dateTime.Day.ToString("00")}'";
 
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
-                MySqlDataAdapter da = new MySqlDataAdapter(cmd);
-                DataTable ds = new DataTable();
-                da.Fill(ds);
+                cmd.ExecuteNonQuery();
+              
+                sql = $"Update Venda set id_venda_controle=null, numero_venda_site=null where data<'{dateTime.Year + "-" + dateTime.Month.ToString("00") + "-" + dateTime.Day.ToString("00")}'";
 
-                dgvCarrinho.Invoke((Action)(() => dgvCarrinho.DataSource = ds));
-
-
-
+                MySqlCommand cmd2 = new MySqlCommand(sql, conn);
+                cmd2.ExecuteNonQuery();
             }
             catch (Exception ex)
             {
@@ -360,7 +359,8 @@ namespace Monitoramento_de_Pedidos
                    "venda.valor_total as \"Valor Total\", " +
                    "venda.valorTroco as \"Valor do Troco\", " +
                    "venda.taxa_entrega as \"Taxa de Entrega\", " +
-                   "venda.pedidoAceito as \"Status Pedido\" " +
+                   "venda.pedidoAceito as \"Status Pedido\", " +
+                   "venda.obs as \"Observacao\" " +
                    "from Venda as venda " +
                    "inner join Cliente as cliente " +
                    $"on venda.id_cliente = cliente.id where venda.pedidoAceito=1 and venda.data = '{theDate.ToString("yyyy-MM-dd")}' order by venda.numero_venda_site desc";
@@ -396,7 +396,7 @@ namespace Monitoramento_de_Pedidos
 
         {
 
-            simpleSound = new SoundPlayer("novoPedido.wav");
+            simpleSound = new SoundPlayer("c:/novoPedido.wav");
             simpleSound.Play();
 
 
@@ -470,6 +470,7 @@ namespace Monitoramento_de_Pedidos
 
         private void dgvVendas_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
+            
             try{
                 txnumeroPedido.Text = "PEDIDO: " + dgvVendas.SelectedCells[0].Value.ToString();
                 nome.Text = RemoverAcentuacao(dgvVendas.SelectedCells[1].Value.ToString().ToUpper());
@@ -477,17 +478,37 @@ namespace Monitoramento_de_Pedidos
 
                 formaPagamento.Text = "FORMA DE PAGAMENTO: " + dgvVendas.SelectedCells[6].Value.ToString();
 
+               
+                endereco.Text = RemoverAcentuacao(dgvVendas.SelectedCells[3].Value.ToString().ToUpper());
+                numero.Text = dgvVendas.SelectedCells[4].Value.ToString().ToUpper();
+                bairro.Text = RemoverAcentuacao(dgvVendas.SelectedCells[5].Value.ToString().ToUpper());
+
+                troco.Text = "TROCO PARA: R$" + dgvVendas.SelectedCells[8].Value.ToString().Replace(".", ",");
+                txtObs.Text = dgvVendas.SelectedCells[14].Value.ToString();
+                subTotal.Text = "SUBTOTAL: R$" + dgvVendas.SelectedCells[9].Value.ToString().Replace(".", ","); ;
+                total.Text = "TOTAL: R$" + dgvVendas.SelectedCells[10].Value.ToString().Replace(".", ","); ;
+                valorTroco.Text = "TROCO: R$" + dgvVendas.SelectedCells[11].Value.ToString().Replace(".", ","); ;
+                taxaEntrega.Text = "TAXA DE ENTREGA: R$" + dgvVendas.SelectedCells[12].Value.ToString().Replace(".", ","); ;
+                pedido = Convert.ToInt32(dgvVendas.SelectedCells[13].Value.ToString());
+
                 if (dgvVendas.SelectedCells[6].Value.ToString() == "CARTAO")
                 {
                     troco.Visible = false;
                     valorTroco.Visible = false;
                     subTotal.Visible = false;
+                    troco.Text = "";
+                    valorTroco.Text = "";
                 }
                 else
                 {
                     troco.Visible = true;
                     valorTroco.Visible = true;
                     subTotal.Visible = true;
+                    if (string.IsNullOrEmpty(dgvVendas.SelectedCells[8].Value.ToString()))
+                    {
+                        troco.Text = "";
+                        valorTroco.Text = "";
+                    }
                 }
                 entrega.Text = Regex.Replace(dgvVendas.SelectedCells[7].Value.ToString().Replace(": R$", "").Replace(",", ""), @"[\d-]", string.Empty);
                 if (entrega.Text == "RETIRAR NO LOCAL")
@@ -503,17 +524,11 @@ namespace Monitoramento_de_Pedidos
                     endereco.Visible = true;
                     numero.Visible = true;
                     bairro.Visible = true;
-                }
-                endereco.Text = RemoverAcentuacao(dgvVendas.SelectedCells[3].Value.ToString().ToUpper());
-                numero.Text = dgvVendas.SelectedCells[4].Value.ToString().ToUpper();
-                bairro.Text = RemoverAcentuacao(dgvVendas.SelectedCells[5].Value.ToString().ToUpper());
 
-                troco.Text = "TROCO PARA: R$" + dgvVendas.SelectedCells[8].Value.ToString().Replace(".", ",");
-                subTotal.Text = "SUBTOTAL: R$" + dgvVendas.SelectedCells[9].Value.ToString().Replace(".", ","); ;
-                total.Text = "TOTAL: R$" + dgvVendas.SelectedCells[10].Value.ToString().Replace(".", ","); ;
-                valorTroco.Text = "TROCO: R$" + dgvVendas.SelectedCells[11].Value.ToString().Replace(".", ","); ;
-                taxaEntrega.Text = "TAXA DE ENTREGA: R$" + dgvVendas.SelectedCells[12].Value.ToString().Replace(".", ","); ;
-                pedido = Convert.ToInt32(dgvVendas.SelectedCells[13].Value.ToString());
+                }
+
+
+
                 aceitarPedido.Visible = true;
                 recusarPedido.Visible = true;
 
@@ -526,29 +541,51 @@ namespace Monitoramento_de_Pedidos
             {
 
             }
-           
+            btnImprimir.Visible = true;
         }
 
         private void dgvAceitos_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
-
+            btnImprimir.Visible = true;
+            aceitarPedido.Visible = true;
+            recusarPedido.Visible = true;
             txnumeroPedido.Text = dgvAceitos.SelectedCells[0].Value.ToString();
             nome.Text = RemoverAcentuacao(dgvAceitos.SelectedCells[1].Value.ToString().ToUpper());
             telefone.Text = RemoverAcentuacao(dgvAceitos.SelectedCells[2].Value.ToString().ToUpper());
 
             formaPagamento.Text = "FORMA DE PAGAMENTO: " + dgvAceitos.SelectedCells[6].Value.ToString();
 
+           
+            endereco.Text = RemoverAcentuacao(dgvAceitos.SelectedCells[3].Value.ToString().ToUpper());
+            numero.Text = dgvAceitos.SelectedCells[4].Value.ToString().ToUpper();
+            bairro.Text = RemoverAcentuacao(dgvAceitos.SelectedCells[5].Value.ToString().ToUpper());
+
+            troco.Text = "TROCO PARA: R$" + dgvAceitos.SelectedCells[8].Value.ToString().Replace(".", ",");
+            subTotal.Text = "SUBTOTAL: R$" + dgvAceitos.SelectedCells[9].Value.ToString().Replace(".", ","); ;
+            total.Text = "TOTAL: R$" + dgvAceitos.SelectedCells[10].Value.ToString().Replace(".", ","); ;
+            valorTroco.Text = "TROCO: R$" + dgvAceitos.SelectedCells[11].Value.ToString().Replace(".", ","); ;
+            taxaEntrega.Text = "TAXA DE ENTREGA: R$" + dgvAceitos.SelectedCells[12].Value.ToString().Replace(".", ","); ;
+            pedido = Convert.ToInt32(dgvAceitos.SelectedCells[13].Value.ToString());
+            txtObs.Text = dgvAceitos.SelectedCells[14].Value.ToString();
+
             if (dgvAceitos.SelectedCells[6].Value.ToString() == "CARTAO")
             {
                 troco.Visible = false;
                 valorTroco.Visible = false;
                 subTotal.Visible = false;
+                troco.Text = "";
+                valorTroco.Text = "";
             }
             else
             {
                 troco.Visible = true;
                 valorTroco.Visible = true;
                 subTotal.Visible = true;
+                if (string.IsNullOrEmpty(dgvAceitos.SelectedCells[8].Value.ToString()))
+                {
+                    troco.Text = "";
+                    valorTroco.Text = "";
+                }
             }
             entrega.Text = Regex.Replace(dgvAceitos.SelectedCells[7].Value.ToString().Replace(": R$", "").Replace(",", ""), @"[\d-]", string.Empty);
             if (entrega.Text == "RETIRAR NO LOCAL")
@@ -564,17 +601,8 @@ namespace Monitoramento_de_Pedidos
                 endereco.Visible = true;
                 numero.Visible = true;
                 bairro.Visible = true;
-            }
-            endereco.Text = RemoverAcentuacao(dgvAceitos.SelectedCells[3].Value.ToString().ToUpper());
-            numero.Text = dgvAceitos.SelectedCells[4].Value.ToString().ToUpper();
-            bairro.Text = RemoverAcentuacao(dgvAceitos.SelectedCells[5].Value.ToString().ToUpper());
 
-            troco.Text = "TROCO PARA: R$" + dgvAceitos.SelectedCells[8].Value.ToString().Replace(".", ",");
-            subTotal.Text = "SUBTOTAL: R$" + dgvAceitos.SelectedCells[9].Value.ToString().Replace(".", ","); ;
-            total.Text = "TOTAL: R$" + dgvAceitos.SelectedCells[10].Value.ToString().Replace(".", ","); ;
-            valorTroco.Text = "TROCO: R$" + dgvAceitos.SelectedCells[11].Value.ToString().Replace(".", ","); ;
-            taxaEntrega.Text = "TAXA DE ENTREGA: R$" + dgvAceitos.SelectedCells[12].Value.ToString().Replace(".", ","); ;
-            pedido = Convert.ToInt32(dgvAceitos.SelectedCells[13].Value.ToString());
+            }
 
 
             CarregarDadosCarrinho(dgvAceitos.SelectedCells[0].Value.ToString());
@@ -597,6 +625,7 @@ namespace Monitoramento_de_Pedidos
             dgvAceitos.Columns[11].Visible = false;
             dgvAceitos.Columns[12].Visible = false;
             dgvAceitos.Columns[13].Visible = false;
+            dgvAceitos.Columns[14].Visible = false;
         }
 
         private void dgvVendas_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -613,6 +642,7 @@ namespace Monitoramento_de_Pedidos
             dgvVendas.Columns[11].Visible = false;
             dgvVendas.Columns[12].Visible = false;
             dgvVendas.Columns[13].Visible = false;
+            dgvVendas.Columns[14].Visible = false;
         }
         string msg;
 
@@ -683,25 +713,14 @@ namespace Monitoramento_de_Pedidos
 
             //impressaoPedido.ShowDialog();
         }
-        private void button2_Click(object sender, EventArgs e)
-        {
-            if (nome.Text != "")
-            {
-                imprimirPedido();
-            }
-
-        }
+      
 
         private void EnviarSMS()
         {
-            msg = $"Ola {nome.Text}, Seu Pedido Foi Aceito, tempo de entrega: {tempo}, agradecemos a preferencia! :D";
+            msg = $"LANCHES DA DONA CARMEN AGRADECE O SEU PEDIDO: {nome.Text}, Seu Pedido Foi Aceito, tempo: {tempo}, agradecemos a preferencia! :D";
             using (var port = new System.IO.Ports.SerialPort())
             {
-                string linha;
-                using (StreamReader reader = new StreamReader("porta.config"))
-                {
-                    linha = reader.ReadLine();
-                }
+                
                 try
                 {
                     port.PortName = "COM9";
@@ -732,7 +751,7 @@ namespace Monitoramento_de_Pedidos
 
         }
 
-        private void button2_Click_1(object sender, EventArgs e)
+        private void imprimir_Click(object sender, EventArgs e)
         {
             var dataSet = new carrinho();
             foreach (DataGridViewRow linha in dgvCarrinho.Rows)
@@ -741,7 +760,7 @@ namespace Monitoramento_de_Pedidos
                 {
                     var novaLinhaDataSet = dataSet._carrinho.NewcarrinhoRow();
 
-                    novaLinhaDataSet.quantidade = linha.Cells[2].Value.ToString();
+                    novaLinhaDataSet.quantidade = linha.Cells[1].Value.ToString();
                     novaLinhaDataSet.descricao = linha.Cells[0].Value.ToString();
 
                     decimal vTotal = Convert.ToDecimal(linha.Cells[1].Value.ToString().Replace("R$","")) * Convert.ToDecimal(linha.Cells[2].Value);
@@ -750,7 +769,14 @@ namespace Monitoramento_de_Pedidos
                     dataSet._carrinho.AddcarrinhoRow(novaLinhaDataSet);
                 }
             }
-            impressaoLocal impressaoPedido = new impressaoLocal(numeroPedido.ToString(), nome.Text, endereco.Text + ", " + numero.Text + "-" + bairro.Text, subTotal.Text, taxaEntrega.Text, total.Text, troco.Text, troco.ToString(), formaPagamento.Text, entrega.Text, dataSet);
+
+            string end="";
+
+            if (entrega.Text == "ENTREGA")
+            {
+                end = endereco.Text + ", " + numero.Text + "-" + bairro.Text;
+            }
+            impressaoLocal impressaoPedido = new impressaoLocal(txnumeroPedido.Text, nome.Text, end, txtObs.Text,subTotal.Text, taxaEntrega.Text, total.Text, troco.Text, valorTroco.Text, formaPagamento.Text, entrega.Text, dataSet);
 
             impressaoPedido.ShowDialog();
 
